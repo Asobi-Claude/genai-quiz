@@ -1,0 +1,66 @@
+<!doctype html><meta charset="utf-8"><title>logic test</title>
+<pre id="out"></pre>
+<script src="../js/data.js"></script>
+<script src="../js/logic.js"></script>
+<script>
+var L = window.Logic, fails = 0, n = 0, out = [];
+function eq(a, b, m) { n++; if (JSON.stringify(a) !== JSON.stringify(b)) { fails++; out.push("NG " + m + ": got " + JSON.stringify(a) + " want " + JSON.stringify(b)); } }
+function mk(d, ok, count) { var a = []; for (var i = 0; i < count; i++) a.push({ qid: "q" + d + i, difficulty: d, correct: i < ok }); return a; }
+// 満点
+eq(L.computeScore([].concat(mk(1, 20, 20), mk(2, 20, 20), mk(3, 20, 20))).score, 100, "perfect");
+// 分母は最低5: 用語2問正解のみ → 20*2/5 = 8
+eq(L.computeScore(mk(1, 2, 2)).score, 8, "denominator floor");
+// 直近20件のみ: 先頭20誤答のあと20正解 → 満点の用語
+eq(L.computeScore(mk(1, 0, 20).concat(mk(1, 20, 20)).map(function (a, i) { a.qid = "x" + i; return a; })).rates[1], 1, "window 20");
+// レベル境界
+eq([0, 24.9, 25, 44.9, 45, 64.9, 65, 84.9, 85, 100].map(L.levelFromScore), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5], "level bounds");
+// 判定中
+eq(L.nextLevel(0, 90, 9), 0, "judging");
+eq(L.nextLevel(0, 90, 10), 5, "first judge");
+// 昇格即時
+eq(L.nextLevel(2, 50, 30), 3, "promote");
+// 降格は下限-5以下のみ: Lv3(下限45) → 41は維持、40で降格
+eq(L.nextLevel(3, 41, 30), 3, "keep above margin");
+eq(L.nextLevel(3, 40, 30), 2, "demote at floor-5");
+eq(L.nextLevel(1, 0, 30), 1, "lv1 floor");
+// 復習
+var t = "2026-11-21";
+eq(L.updateReview(undefined, false, false, "q", t), { qid: "q", step: 0, streak: 0, due: "2026-11-22" }, "wrong adds");
+eq(L.updateReview(undefined, true, false, "q", t), undefined, "correct none");
+eq(L.updateReview(undefined, true, true, "q", t).due, "2026-11-22", "unsure adds");
+var r0 = { qid: "q", step: 0, streak: 0, due: t };
+var r1 = L.updateReview(r0, true, false, "q", t);
+eq([r1.step, r1.streak, r1.due], [1, 1, "2026-11-24"], "step1 3d");
+var r2 = L.updateReview(r1, true, false, "q", t);
+eq([r2.step, r2.streak, r2.due], [2, 2, "2026-11-28"], "step2 7d");
+eq(L.updateReview(r2, true, false, "q", t), null, "graduate at 3");
+eq(L.updateReview(r2, false, false, "q", t).step, 0, "wrong resets");
+eq(L.addDays("2026-12-31", 1), "2027-01-01", "addDays year");
+eq(L.streakDays(["2026-11-21", "2026-11-20", "2026-11-18"], "2026-11-21"), 2, "streak");
+eq(L.streakDays(["2026-11-20"], "2026-11-21"), 1, "streak yesterday");
+eq(L.streakDays(["2026-11-19"], "2026-11-21"), 0, "streak broken");
+// 出題
+var D = window.QUIZ_DATA;
+var pool = D.questions.filter(function (q) { return q.status === "reviewed"; });
+var ids = D.categories.map(function (c) { return c.id; });
+for (var k = 0; k < 30; k++) {
+  var s = L.buildSession({ pool: pool, total: 12, categoryIds: ids, levels: {}, dueIds: [], lastSeen: {} });
+  var per = {}, seen = {};
+  s.forEach(function (x) { per[x.q.category_id] = (per[x.q.category_id] || 0) + 1; seen[x.q.id] = 1; });
+  if (s.length !== 12 || Object.keys(seen).length !== 12 || ids.some(function (c) { return per[c] !== 2; })) { fails++; out.push("NG session " + JSON.stringify(per)); break; }
+}
+n++;
+var due = pool.slice(0, 6).map(function (q) { return q.id; });
+var s2 = L.buildSession({ pool: pool, total: 12, categoryIds: ids, levels: {}, dueIds: due, lastSeen: {} });
+eq(s2.filter(function (x) { return x.review; }).length, 4, "review cap 4");
+eq(s2.length, 12, "len with review");
+var s6 = L.buildSession({ pool: pool, total: 6, categoryIds: ids, levels: {}, dueIds: due, lastSeen: {} });
+eq(s6.length, 3 > 0 ? 6 : 0, "short 6");
+var sub = L.buildSession({ pool: pool, total: 12, categoryIds: ids, levels: {}, subtopicIds: ["c1-01", "c2-01"], dueIds: [], lastSeen: {} });
+eq(sub.every(function (x) { return x.q.subtopic_id === "c1-01" || x.q.subtopic_id === "c2-01"; }), true, "subtopic filter");
+// レベル別比率: Lv5 は判断中心
+var cnt = { 1: 0, 2: 0, 3: 0 }, lv5 = {}; ids.forEach(function (c) { lv5[c] = 5; });
+for (k = 0; k < 40; k++) L.buildSession({ pool: pool, total: 12, categoryIds: ids, levels: lv5, dueIds: [], lastSeen: {} }).forEach(function (x) { cnt[x.q.difficulty]++; });
+eq(cnt[3] > cnt[1] * 3, true, "lv5 mostly 判断 " + JSON.stringify(cnt));
+document.getElementById("out").textContent = (fails ? "FAIL " + fails : "PASS") + " (" + n + " checks)\n" + out.join("\n");
+</script>
