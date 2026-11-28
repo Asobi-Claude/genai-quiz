@@ -262,7 +262,14 @@
     });
   }
 
+  // 弱点ごとの確認問題を出題する（回答は checks にだけ保存され、点数・復習には入らない）
+  function startCheck(report, topic) {
+    var items = topic.check.map(function (q) { return { q: q, review: false }; });
+    UI().begin(items, { mode: "check", reportId: report.id, topicId: topic.id, returnHash: "#/study/" + report.id });
+  }
+
   window.Study = {
+    startCheck: startCheck,
     preload: loadIndex, hasNew: hasNew, viewList: viewList, viewReader: viewReader,
     _loadReport: loadReport,
     _entry: function (id) { return index && index.reports.filter(function (r) { return r.id === id; })[0]; },

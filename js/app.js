@@ -253,7 +253,8 @@
   function begin(items, o) {
     if (!items.length) { toast("出題できる問題がありません"); return; }
     items.forEach(function (it) { it.perm = L.shuffle([0, 1, 2, 3]); });
-    S.session = { items: items, idx: 0, startedAt: Date.now(), results: [], mode: o.mode || "normal", sel: null, unsure: false, answered: false };
+    S.session = { items: items, idx: 0, startedAt: Date.now(), results: [], mode: o.mode || "normal", sel: null, unsure: false, answered: false,
+      reportId: o.reportId, topicId: o.topicId, returnHash: o.returnHash };
     history.pushState({ quiz: true }, "", "#/quiz");
     viewQuestion();
   }
@@ -294,7 +295,7 @@
       qHeader(sess), qChips(it),
       h("h1", { class: "q", text: q.question }),
       h("div", { class: "choices", role: "radiogroup", "aria-label": "選択肢" }, btns.map(function (b) { return h("div", null, b); })),
-      h("label", { class: "unsure", for: "unsure" }, [cb, "自信がない（正解でも復習に加える）"]),
+      sess.mode === "check" ? null : h("label", { class: "unsure", for: "unsure" }, [cb, "自信がない（正解でも復習に加える）"]),
       h("div", { class: "footer" }, submit),
     ]);
   }
@@ -306,6 +307,12 @@
     var correct = chosenOrig === q.answer;
     var t = Date.now(), td = today();
     sess.answered = true;
+    if (sess.mode === "check") {
+      Store.addCheck({ reportId: sess.reportId, topicId: sess.topicId, qid: q.id, correct: correct, chosen: chosenOrig, ts: t, date: td });
+      sess.results.push({ qid: q.id, correct: correct, category_id: q.category_id });
+      viewFeedback(chosenOrig, correct, null);
+      return;
+    }
     Store.addAnswer({ qid: q.id, category_id: q.category_id, subtopic_id: q.subtopic_id, difficulty: q.difficulty, correct: correct, unsure: sess.unsure, chosen: chosenOrig, version: q.version, ts: t, date: td });
     var prev = Store.state.reviews[q.id];
     var nr = L.updateReview(prev, correct, sess.unsure, q.id, td);
@@ -348,15 +355,31 @@
   }
 
   function interrupt() {
-    ask("ここまでの回答は記録されます。クイズを中断しますか？", "中断する", "続ける", true).then(function (ok) {
+    var back = (S.session && S.session.returnHash) || "#/home";
+    var msg = S.session && S.session.mode === "check" ? "確認問題を中断して、レポートに戻りますか？" : "ここまでの回答は記録されます。クイズを中断しますか？";
+    ask(msg, "中断する", "続ける", true).then(function (ok) {
       if (!ok) return;
       endSession();
-      location.hash = "#/home";
-      if (location.hash === "#/home") route();
+      location.hash = back;
+      if (location.hash === back) route();
     });
   }
 
+  // 確認問題の結果。scores・sessions には書かない。
+  function finishCheck() {
+    var sess = S.session;
+    var okN = sess.results.filter(function (r) { return r.correct; }).length, total = sess.results.length, back = sess.returnHash || "#/home";
+    endSession();
+    mount([
+      h("header", { class: "top" }, h("h1", { text: "確認問題の結果" })),
+      h("section", { class: "score", "aria-label": "正解数" }, [h("div", { class: "disc" }, [h("div", { class: "num", html: okN + "<small>/ " + total + "</small>" }), h("div", { class: "hint", text: "正解" })])]),
+      h("p", { class: "hint", style: "text-align:center", text: "確認問題は、レベルの点数には入りません。" }),
+      h("div", { class: "stack" }, h("a", { class: "btn primary", href: back, text: "レポートに戻る" })),
+    ]);
+  }
+
   function finish() {
+    if (S.session && S.session.mode === "check") return finishCheck();
     var sess = S.session;
     var ts = Date.now(), td = today();
     var all = validAnswers();
