@@ -141,6 +141,7 @@
     home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
     chart: '<path d="M5 20V10M12 20V4M19 20v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
     review: '<path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    study: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
     gear: '<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   };
   function icon(name) { var d = document.createElement("div"); d.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + "</svg>"; return d.firstChild; }
@@ -149,9 +150,10 @@
     function item(id, label, ic) {
       var a = h("a", { href: "#/" + id, "aria-current": cur === id ? "page" : null }, [icon(ic), label]);
       if (id === "review" && due) a.appendChild(h("span", { class: "dot", text: String(due), "aria-label": "復習 " + due + "問" }));
+      if (id === "study" && window.Study && window.Study.hasNew()) a.appendChild(h("span", { class: "dot new", "aria-label": "新しいレポートがあります" }));
       return h("li", null, a);
     }
-    return h("nav", { class: "nav", "aria-label": "メイン" }, h("ul", null, [item("home", "ホーム", "home"), item("analysis", "分析", "chart"), item("review", "復習", "review")]));
+    return h("nav", { class: "nav", "aria-label": "メイン" }, h("ul", null, [item("home", "ホーム", "home"), item("analysis", "分析", "chart"), item("review", "復習", "review"), item("study", "学習", "study")]));
   }
 
   /* ---------- ホーム ---------- */
@@ -607,13 +609,25 @@
     if (hash === "#/analysis") return viewAnalysis();
     if (hash === "#/review") return viewReview();
     if (hash === "#/settings") return viewSettings();
+    if (hash === "#/study") return window.Study.viewList();
+    if (hash.indexOf("#/study/") === 0) return window.Study.viewReader(decodeURIComponent(hash.slice(8)));
     return viewHome();
   }
   window.addEventListener("hashchange", route);
   window.addEventListener("popstate", function () { if (S.session) route(); });
 
+  // 開いているタブを保ったまま、ナビだけを作り直す（新着の印を後から出すため）
+  function refreshNav() {
+    var old = root.querySelector(".nav");
+    if (!old) return;
+    var cur = (location.hash.match(/^#\/(home|analysis|review|study)/) || [null, "home"])[1];
+    old.replaceWith(navBar(cur));
+  }
+  window.UI = { h: h, svgEl: svgEl, esc: esc, mount: mount, toast: toast, ask: ask, icon: icon, short: short, catById: catById, begin: begin, refreshNav: refreshNav };
+
   Store.init().then(function () {
     route();
+    window.Study.preload().then(refreshNav);
     if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) navigator.serviceWorker.register("sw.js").catch(function () {});
   });
   window.__quiz = { S: S, Store: Store };
