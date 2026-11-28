@@ -595,6 +595,7 @@
         h("label", { class: "switch", for: "inc" }, [h("span", { text: "確認前の問題も出題する" }), cb]),
         h("p", { class: "hint", text: "確認済み " + nRev + "問のほか、確認前の " + (D.questions.length - nRev) + "問を含めます。" }),
       ]),
+      analysisCard(),
       h("section", { class: "card" }, [
         h("h2", { text: "記録のバックアップ" }),
         h("p", { class: "hint", text: "記録はこの端末のブラウザに保存されます。機種変更の前に書き出してください。" }),
@@ -611,12 +612,33 @@
       h("p", { class: "hint", style: "margin-top:12px", text: "問題データ：" + D.questions.length + "問・" + D.built_at + " 作成" }),
     ], { nav: "home" });
   }
-  function exportData() {
-    var blob = new Blob([Store.exportJson()], { type: "application/json" });
-    var a = h("a", { href: URL.createObjectURL(blob), download: "genai-quiz-" + today() + ".json" });
+  function download(text, filename) {
+    var blob = new Blob([text], { type: "application/json" });
+    var a = h("a", { href: URL.createObjectURL(blob), download: filename });
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+  function exportData() {
+    download(Store.exportJson(), "genai-quiz-" + today() + ".json");
     toast("書き出しました");
+  }
+
+  // 学習レポートを作るための、分析用の書き出し（直近100問）
+  function analysisExport() {
+    return L.buildAnalysisExport(Store.state.answers, qById, Object.keys(Store.state.reviews).map(function (k) { return Store.state.reviews[k]; }), { n: 100 });
+  }
+  function analysisCard() {
+    var ex = analysisExport(), n = ex.answers.length;
+    var btn = h("button", { class: "btn", type: "button", text: "分析用データを書き出す", disabled: n ? null : true, onclick: function () {
+      download(JSON.stringify(analysisExport(), null, 1), "genai-quiz-analysis-" + today() + ".json");
+      toast("書き出しました");
+    } });
+    return h("section", { class: "card" }, [
+      h("h2", { text: "学習レポートの材料" }),
+      h("p", { class: "hint", text: "直近の回答（選んだ選択肢つき）を書き出します。このファイルをパソコンに渡すと、弱点のレポートと教材を作れます。" }),
+      h("div", { class: "stack" }, btn),
+      h("p", { class: "hint", text: n ? "直近" + n + "問を書き出します。" : "まだ回答がありません。クイズを解くと書き出せます。" }),
+    ]);
   }
 
   /* ---------- ルーティング ---------- */
