@@ -62,5 +62,20 @@ eq(sub.every(function (x) { return x.q.subtopic_id === "c1-01" || x.q.subtopic_i
 var cnt = { 1: 0, 2: 0, 3: 0 }, lv5 = {}; ids.forEach(function (c) { lv5[c] = 5; });
 for (k = 0; k < 40; k++) L.buildSession({ pool: pool, total: 12, categoryIds: ids, levels: lv5, dueIds: [], lastSeen: {} }).forEach(function (x) { cnt[x.q.difficulty]++; });
 eq(cnt[3] > cnt[1] * 3, true, "lv5 mostly 判断 " + JSON.stringify(cnt));
+// --- 学習モード: 分析用書き出し ---
+var QB = {}; pool.slice(0, 3).forEach(function (q) { QB[q.id] = q; });
+function ans(i, extra) { var q = pool[i % 3]; var a = { qid: q.id, category_id: q.category_id, subtopic_id: q.subtopic_id, difficulty: q.difficulty, correct: i % 2 === 0, version: q.version, ts: 1000 + i, date: "2026-11-2" + (i % 9) }; for (var k in (extra || {})) a[k] = extra[k]; return a; }
+var many = []; for (var i = 0; i < 120; i++) many.push(ans(i, { chosen: i % 4 }));
+var ex = L.buildAnalysisExport(many, QB, [], { n: 100, now: 5000 });
+eq(ex.answers.length, 100, "export keeps last 100");
+eq(ex.answers[0].ts, 1020, "export starts at the 21st answer");
+eq(ex.window.n, 100, "window.n");
+eq(ex.app + "/" + ex.format, "genai-quiz-analysis/1", "export identity");
+var stale = [ans(0), ans(1, { version: 99 }), ans(2)];
+eq(L.buildAnalysisExport(stale, QB, [], { n: 100, now: 5000 }).answers.length, 2, "stale version excluded");
+var none = L.buildAnalysisExport([], QB, [], { n: 100, now: 5000 });
+eq([none.answers.length, none.window.from, none.window.to], [0, null, null], "empty export");
+eq(L.buildAnalysisExport([ans(0)], QB, [], { n: 100, now: 5000 }).answers[0].chosen, null, "missing chosen is null");
+eq([L.clampChapter(5, 3), L.clampChapter(-1, 3), L.clampChapter(2, 0), L.clampChapter(1.7, 3)], [2, 0, 0, 1], "clampChapter");
 document.getElementById("out").textContent = (fails ? "FAIL " + fails : "PASS") + " (" + n + " checks)\n" + out.join("\n");
 </script>

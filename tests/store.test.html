@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>store test</title><pre id="out"></pre>
+<script src="../js/store.js"></script>
+<script>
+var fails = 0, n = 0, out = [];
+function eq(a, b, m) { n++; if (JSON.stringify(a) !== JSON.stringify(b)) { fails++; out.push("NG " + m + ": got " + JSON.stringify(a) + " want " + JSON.stringify(b)); } }
+function fin() { document.getElementById("out").textContent = (fails ? "FAIL " + fails : "PASS") + " (" + n + " checks)\n" + out.join("\n"); }
+try { localStorage.clear(); } catch (e) {}
+Store.init().then(function () {
+  var S = Store.state;
+  eq(S.settings.reader, { size: "m", font: "gothic", theme: "white" }, "reader defaults");
+  eq([S.checks, S.study], [[], {}], "new state arrays");
+  Store.addCheck({ reportId: "r-x", topicId: "t1", qid: "k-1", correct: true, chosen: 2, ts: 1, date: "2026-11-29" });
+  eq(S.checks.length, 1, "addCheck stores");
+  eq(S.answers.length, 0, "check does not touch answers");
+  Store.setStudy("r-x", { chapter: 2 });
+  Store.setStudy("r-x", { done: true });
+  eq([S.study["r-x"].chapter, S.study["r-x"].done], [2, true], "setStudy merges");
+  var j = JSON.parse(Store.exportJson());
+  eq([j.checks.length, j.study["r-x"].chapter], [1, 2], "backup export has checks and study");
+  return Store.importJson(JSON.stringify({ app: "genai-quiz", answers: [] })).then(function () {
+    eq([S.checks.length, Object.keys(S.study).length], [0, 0], "import without checks/study clears them");
+    fin();
+  });
+}).catch(function (e) { out.push("ERR " + e); fails++; fin(); });
+</script>

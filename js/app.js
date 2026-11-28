@@ -303,7 +303,7 @@
     var correct = chosenOrig === q.answer;
     var t = Date.now(), td = today();
     sess.answered = true;
-    Store.addAnswer({ qid: q.id, category_id: q.category_id, subtopic_id: q.subtopic_id, difficulty: q.difficulty, correct: correct, unsure: sess.unsure, version: q.version, ts: t, date: td });
+    Store.addAnswer({ qid: q.id, category_id: q.category_id, subtopic_id: q.subtopic_id, difficulty: q.difficulty, correct: correct, unsure: sess.unsure, chosen: chosenOrig, version: q.version, ts: t, date: td });
     var prev = Store.state.reviews[q.id];
     var nr = L.updateReview(prev, correct, sess.unsure, q.id, td);
     if (nr !== undefined) Store.setReview(q.id, nr);

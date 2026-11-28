@@ -246,7 +246,37 @@
     return n;
   }
 
+  /* 分析用の書き出し。直近 n 件（版が現行と違う回答は除く）。個人を特定する情報は入れない。 */
+  function buildAnalysisExport(answers, questionsById, reviews, opts) {
+    opts = opts || {};
+    var n = opts.n || 100;
+    var now = opts.now || Date.now();
+    var valid = answers.filter(function (a) {
+      var q = questionsById[a.qid];
+      return q && q.version === a.version;
+    }).sort(function (a, b) { return a.ts - b.ts; }).slice(-n);
+    var out = valid.map(function (a) {
+      return {
+        qid: a.qid, category_id: a.category_id, subtopic_id: a.subtopic_id, difficulty: a.difficulty,
+        correct: !!a.correct, unsure: !!a.unsure, chosen: typeof a.chosen === "number" ? a.chosen : null,
+        version: a.version, ts: a.ts, date: a.date,
+      };
+    });
+    return {
+      app: "genai-quiz-analysis", format: 1, exported_at: new Date(now).toISOString(),
+      window: { n: n, from: out.length ? out[0].date : null, to: out.length ? out[out.length - 1].date : null },
+      answers: out, reviews: reviews || [],
+    };
+  }
+
+  /* 読みかけの章番号を、現在の章数に収める */
+  function clampChapter(index, count) {
+    var i = Math.floor(Number(index) || 0);
+    return Math.max(0, Math.min(i, Math.max(count - 1, 0)));
+  }
+
   return {
+    buildAnalysisExport: buildAnalysisExport, clampChapter: clampChapter,
     WEIGHTS: WEIGHTS, WINDOW: WINDOW, LEVEL_MIN: LEVEL_MIN, RATIOS: RATIOS,
     REVIEW_DAYS: REVIEW_DAYS, JUDGE_MIN: JUDGE_MIN,
     dateStr: dateStr, addDays: addDays, daysBetween: daysBetween,
