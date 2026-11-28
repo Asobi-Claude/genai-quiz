@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var L = window.Logic, Store = window.Store, D = window.QUIZ_DATA;
-  var APP_VERSION = "v7"; // sw.js の CACHE と同じ版にする（scripts/tests/test_app_release.py が確認）
+  var APP_VERSION = "v8"; // sw.js の CACHE と同じ版にする（scripts/tests/test_app_release.py が確認）
   var root = document.getElementById("app");
 
   var cats = D.categories;
@@ -649,7 +649,8 @@
     ];
     var data = null;
     for (var i = 0; i < candidates.length && !data; i++) {
-      var d = { files: [new File([text], candidates[i].name, { type: candidates[i].type })], title: "生成AIクイズ 分析用データ" };
+      // title は渡さない（Android の Drive は title をファイル名にしてしまい、日時入りの名前が失われる）
+      var d = { files: [new File([text], candidates[i].name, { type: candidates[i].type })] };
       try { if (navigator.canShare && navigator.canShare(d)) data = d; } catch (e) { /* 次の形式へ */ }
     }
     function fallback(err) {
