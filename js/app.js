@@ -627,16 +627,34 @@
   function analysisExport() {
     return L.buildAnalysisExport(Store.state.answers, qById, Object.keys(Store.state.reviews).map(function (k) { return Store.state.reviews[k]; }), { n: 100 });
   }
+  // 共有メニューに渡す。ファイル名に日時（時分）を入れ、同じ日に何度送っても重ならないようにする。
+  function analysisFileName() {
+    var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return "genai-quiz-analysis-" + today() + "-" + p(d.getHours()) + p(d.getMinutes()) + ".json";
+  }
+  function canShareFiles() {
+    try {
+      return !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File(["{}"], "x.json", { type: "application/json" })] }));
+    } catch (e) { return false; }
+  }
+  function shareAnalysis() {
+    var file = new File([JSON.stringify(analysisExport(), null, 1)], analysisFileName(), { type: "application/json" });
+    navigator.share({ files: [file], title: "生成AIクイズ 分析用データ" }).catch(function (e) {
+      if (e && e.name === "AbortError") return; // 利用者が共有をやめた
+      toast("共有できませんでした。「分析用データを書き出す」を使ってください");
+    });
+  }
   function analysisCard() {
     var ex = analysisExport(), n = ex.answers.length;
+    var send = canShareFiles() ? h("button", { class: "btn primary", type: "button", text: "分析用データを送る", disabled: n ? null : true, onclick: shareAnalysis }) : null;
     var btn = h("button", { class: "btn", type: "button", text: "分析用データを書き出す", disabled: n ? null : true, onclick: function () {
       download(JSON.stringify(analysisExport(), null, 1), "genai-quiz-analysis-" + today() + ".json");
       toast("書き出しました");
     } });
     return h("section", { class: "card" }, [
       h("h2", { text: "学習レポートの材料" }),
-      h("p", { class: "hint", text: "直近の回答（選んだ選択肢つき）を書き出します。このファイルをパソコンに渡すと、弱点のレポートと教材を作れます。" }),
-      h("div", { class: "stack" }, btn),
+      h("p", { class: "hint", text: "直近の回答（選んだ選択肢つき）を、パソコンに渡します。「送る」で共有メニューが開くので、Google Drive を選んで保存してください。" }),
+      h("div", { class: "stack" }, [send, btn]),
       h("p", { class: "hint", text: n ? "直近" + n + "問を書き出します。" : "まだ回答がありません。クイズを解くと書き出せます。" }),
     ]);
   }
