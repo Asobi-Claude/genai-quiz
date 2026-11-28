@@ -46,10 +46,10 @@
     root.replaceChildren.apply(root, [].concat(nodes, opts.nav ? [navBar(opts.nav)] : []).filter(Boolean));
     window.scrollTo(0, 0);
   }
-  function toast(msg) {
+  function toast(msg, ms) {
     var t = h("div", { class: "toast", role: "status", text: msg });
     document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, 2600);
+    setTimeout(function () { t.remove(); }, ms || 2600);
   }
   function ask(msg, okLabel, cancelLabel, danger) {
     return new Promise(function (resolve) {
@@ -637,12 +637,28 @@
       return !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File(["{}"], "x.json", { type: "application/json" })] }));
     } catch (e) { return false; }
   }
+  // 共有メニューに渡す。端末によって、JSON のファイルは共有できないことがあるため、
+  // 1) JSON 2) text/plain（中身は同じ）の順に試し、だめならダウンロードで逃がす。
   function shareAnalysis() {
-    var file = new File([JSON.stringify(analysisExport(), null, 1)], analysisFileName(), { type: "application/json" });
-    navigator.share({ files: [file], title: "生成AIクイズ 分析用データ" }).catch(function (e) {
-      if (e && e.name === "AbortError") return; // 利用者が共有をやめた
-      toast("共有できませんでした。「分析用データを書き出す」を使ってください");
-    });
+    var text = JSON.stringify(analysisExport(), null, 1), name = analysisFileName();
+    var kinds = ["application/json", "text/plain"], lastErr = null;
+    function attempt(i) {
+      if (i >= kinds.length) {
+        download(text, name);
+        var why = lastErr ? "（" + (lastErr.name || "エラー") + (lastErr.message ? "：" + lastErr.message : "") + "）" : "";
+        toast("共有できませんでした" + why + "。ファイルをダウンロードしました。ファイルアプリから Drive に保存してください", 9000);
+        return;
+      }
+      var file = new File([text], name, { type: kinds[i] });
+      var data = { files: [file], title: "生成AIクイズ 分析用データ" };
+      if (navigator.canShare && !navigator.canShare(data)) { lastErr = { name: "NotSupported", message: kinds[i] }; return attempt(i + 1); }
+      navigator.share(data).catch(function (e) {
+        if (e && e.name === "AbortError") return; // 利用者が共有をやめた
+        lastErr = e;
+        attempt(i + 1);
+      });
+    }
+    attempt(0);
   }
   function analysisCard() {
     var ex = analysisExport(), n = ex.answers.length;
