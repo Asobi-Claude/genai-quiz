@@ -41,6 +41,7 @@
   function short(c) { return c.short_name || c.name; }
   function mount(nodes, opts) {
     opts = opts || {};
+    document.body.style.background = ""; // 読む画面の背景テーマを戻す
     root.className = "app" + (opts.nav ? "" : " no-nav");
     root.replaceChildren.apply(root, [].concat(nodes, opts.nav ? [navBar(opts.nav)] : []).filter(Boolean));
     window.scrollTo(0, 0);
