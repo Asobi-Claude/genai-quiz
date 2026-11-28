@@ -35,9 +35,11 @@
   }
   function getAll(name) {
     return new Promise(function (resolve) {
-      var r = db.transaction(name).objectStore(name).getAll();
-      r.onsuccess = function () { resolve(r.result); };
-      r.onerror = function () { resolve([]); };
+      try {
+        var r = db.transaction(name).objectStore(name).getAll();
+        r.onsuccess = function () { resolve(r.result); };
+        r.onerror = function () { resolve([]); };
+      } catch (e) { resolve([]); } // ストアが無いなどの例外でも、起動を止めない
     });
   }
   function put(name, value) {

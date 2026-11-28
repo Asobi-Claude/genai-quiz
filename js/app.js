@@ -272,7 +272,7 @@
     var q = it.q;
     var kids = [h("span", { class: "chip blue", text: short(catById[q.category_id]) }), h("span", { class: "chip", text: DIFF[q.difficulty] })];
     if (it.review) kids.push(h("span", { class: "chip orange", text: "復習" }));
-    q.tags.slice(0, 2).forEach(function (t) { kids.push(h("span", { class: "chip", text: t })); });
+    (q.tags || []).slice(0, 2).forEach(function (t) { kids.push(h("span", { class: "chip", text: t })); });
     return h("div", { class: "chips" }, kids);
   }
 

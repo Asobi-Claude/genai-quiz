@@ -228,7 +228,7 @@
           count.textContent = (cur + 1) + " / " + chapters.length;
           var lastCh = cur === chapters.length - 1;
           next.textContent = lastCh ? "読み終える" : "次の章へ";
-          Store.setStudy(id, { chapter: cur, total: chapters.length, updated: Date.now(), done: lastCh ? !!(Store.state.study[id] && Store.state.study[id].done) : false });
+          Store.setStudy(id, { chapter: cur, total: chapters.length, updated: Date.now() }); // done は読み終えたときだけ true にし、ここでは触らない
           if (scroll !== false) body.scrollTop = 0;
         }
         function tocSheet() {
