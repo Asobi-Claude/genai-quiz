@@ -1,6 +1,7 @@
 (function () {
   "use strict";
   var L = window.Logic, Store = window.Store, D = window.QUIZ_DATA;
+  var APP_VERSION = "v7"; // sw.js の CACHE と同じ版にする（scripts/tests/test_app_release.py が確認）
   var root = document.getElementById("app");
 
   var cats = D.categories;
@@ -609,7 +610,7 @@
         ]),
         Store.persistent ? null : h("p", { class: "hint", text: "このブラウザでは保存領域が使えないため、簡易保存になっています。" }),
       ]),
-      h("p", { class: "hint", style: "margin-top:12px", text: "問題データ：" + D.questions.length + "問・" + D.built_at + " 作成" }),
+      h("p", { class: "hint", style: "margin-top:12px", text: "問題データ：" + D.questions.length + "問・" + D.built_at + " 作成　アプリの版：" + APP_VERSION }),
     ], { nav: "home" });
   }
   function download(text, filename) {
@@ -654,7 +655,7 @@
     function fallback(err) {
       download(text, name);
       var why = err ? "（" + (err.name || "エラー") + (err.message ? "：" + err.message : "") + "）" : "";
-      toast("共有できませんでした" + why + "。ファイルをダウンロードしました。ファイルアプリから Drive に保存してください", 9000);
+      toast("共有できませんでした" + why + "。ファイルをダウンロードしました。ファイルアプリから Drive に保存してください（版 " + APP_VERSION + "）", 9000);
     }
     if (!data) return fallback(null);
     navigator.share(data).catch(function (e) {

@@ -1,8 +1,13 @@
-/* 同一オリジンは通信を優先し、失敗したらキャッシュ。フォントは取得後に保存。 */
-const CACHE = "genai-quiz-v6";
+/* 同一オリジンは通信を優先し、失敗したらキャッシュ。フォントは取得後に保存。
+   公開直後に古いファイルが残らないよう、取得はブラウザの HTTP キャッシュを経由せず、サーバーに確認する。 */
+const CACHE = "genai-quiz-v7";
 const SHELL = ["./", "index.html", "css/style.css", "js/data.js", "js/logic.js", "js/store.js", "js/study.js", "js/app.js", "content/index.json", "manifest.webmanifest", "icons/icon-192.png"];
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => Promise.all(SHELL.map((u) => fetch(u, { cache: "reload" }).then((r) => { if (!r.ok) throw new Error(u); return c.put(u, r); }))))
+      .then(() => self.skipWaiting())
+  );
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
@@ -18,5 +23,5 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; })));
     return;
   }
-  e.respondWith(fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; }).catch(() => caches.match(req)));
+  e.respondWith(fetch(req, { cache: "no-cache" }).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; }).catch(() => caches.match(req)));
 });
