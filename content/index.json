@@ -1,0 +1,14 @@
+{
+ "reports": [
+  {
+   "id": "r-sample",
+   "title": "サンプル：画面確認用のレポート",
+   "created": "2026-11-29",
+   "n": 100,
+   "rate": 0.58,
+   "topics": 2,
+   "minutes": 3,
+   "file": "r-sample.json"
+  }
+ ]
+}
