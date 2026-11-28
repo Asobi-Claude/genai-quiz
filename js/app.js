@@ -637,29 +637,30 @@
       return !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File(["{}"], "x.json", { type: "application/json" })] }));
     } catch (e) { return false; }
   }
-  // 共有メニューに渡す。端末によって、JSON のファイルは共有できないことがあるため、
-  // 1) JSON 2) text/plain（中身は同じ）の順に試し、だめならダウンロードで逃がす。
+  // 共有メニューに渡す。share は「利用者の操作の中」でしか呼べないので、1回だけ、同期的に呼ぶ（再試行しない）。
+  // Android の Chrome は拡張子でも共有を制限する（.json は不可、.txt は可）ため、最初は text/plain の .json.txt を使う。
+  // PC の分析アプリは .json.txt も同じように読める。どの形式も共有できなければ、ダウンロードに切り替える。
   function shareAnalysis() {
     var text = JSON.stringify(analysisExport(), null, 1), name = analysisFileName();
-    var kinds = ["application/json", "text/plain"], lastErr = null;
-    function attempt(i) {
-      if (i >= kinds.length) {
-        download(text, name);
-        var why = lastErr ? "（" + (lastErr.name || "エラー") + (lastErr.message ? "：" + lastErr.message : "") + "）" : "";
-        toast("共有できませんでした" + why + "。ファイルをダウンロードしました。ファイルアプリから Drive に保存してください", 9000);
-        return;
-      }
-      // Chrome は拡張子でも共有を制限する（.json は不可、.txt は可）。text/plain のときは名前も .txt にする
-      var file = new File([text], i === 0 ? name : name + ".txt", { type: kinds[i] });
-      var data = { files: [file], title: "生成AIクイズ 分析用データ" };
-      if (navigator.canShare && !navigator.canShare(data)) { lastErr = { name: "NotSupported", message: kinds[i] }; return attempt(i + 1); }
-      navigator.share(data).catch(function (e) {
-        if (e && e.name === "AbortError") return; // 利用者が共有をやめた
-        lastErr = e;
-        attempt(i + 1);
-      });
+    var candidates = [
+      { type: "text/plain", name: name + ".txt" },
+      { type: "application/json", name: name },
+    ];
+    var data = null;
+    for (var i = 0; i < candidates.length && !data; i++) {
+      var d = { files: [new File([text], candidates[i].name, { type: candidates[i].type })], title: "生成AIクイズ 分析用データ" };
+      try { if (navigator.canShare && navigator.canShare(d)) data = d; } catch (e) { /* 次の形式へ */ }
     }
-    attempt(0);
+    function fallback(err) {
+      download(text, name);
+      var why = err ? "（" + (err.name || "エラー") + (err.message ? "：" + err.message : "") + "）" : "";
+      toast("共有できませんでした" + why + "。ファイルをダウンロードしました。ファイルアプリから Drive に保存してください", 9000);
+    }
+    if (!data) return fallback(null);
+    navigator.share(data).catch(function (e) {
+      if (e && e.name === "AbortError") return; // 利用者が共有をやめた
+      fallback(e);
+    });
   }
   function analysisCard() {
     var ex = analysisExport(), n = ex.answers.length;

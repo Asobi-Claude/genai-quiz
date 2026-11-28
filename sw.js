@@ -1,5 +1,5 @@
 /* 同一オリジンは通信を優先し、失敗したらキャッシュ。フォントは取得後に保存。 */
-const CACHE = "genai-quiz-v5";
+const CACHE = "genai-quiz-v6";
 const SHELL = ["./", "index.html", "css/style.css", "js/data.js", "js/logic.js", "js/store.js", "js/study.js", "js/app.js", "content/index.json", "manifest.webmanifest", "icons/icon-192.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
