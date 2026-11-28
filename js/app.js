@@ -649,7 +649,8 @@
         toast("共有できませんでした" + why + "。ファイルをダウンロードしました。ファイルアプリから Drive に保存してください", 9000);
         return;
       }
-      var file = new File([text], name, { type: kinds[i] });
+      // Chrome は拡張子でも共有を制限する（.json は不可、.txt は可）。text/plain のときは名前も .txt にする
+      var file = new File([text], i === 0 ? name : name + ".txt", { type: kinds[i] });
       var data = { files: [file], title: "生成AIクイズ 分析用データ" };
       if (navigator.canShare && !navigator.canShare(data)) { lastErr = { name: "NotSupported", message: kinds[i] }; return attempt(i + 1); }
       navigator.share(data).catch(function (e) {
