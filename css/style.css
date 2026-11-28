@@ -181,3 +181,20 @@ details.wrong .body .y { color: var(--orange-deep); }
 @media (prefers-contrast: more) {
   :root { --line: #8a90a2; --sub: #3c4152; }
 }
+
+/* 案A：ロゴ・下から出る解説パネル・結果の円 */
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand .logo { width: 40px; height: 40px; flex: none; }
+.app.has-sheet { padding-bottom: 340px; }
+.sheet { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; z-index: 20; background: var(--blue-soft); border-top: 2px solid var(--blue); border-radius: 20px 20px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 20px rgba(27, 30, 43, .08); }
+.sheet.ng { background: var(--orange-soft); border-color: var(--orange); }
+.sheet .verdict { margin: 0 0 6px; font-size: 18px; }
+.sheet-body { max-height: 32vh; overflow-y: auto; margin-bottom: 12px; }
+.sheet-body .note { background: rgba(255, 255, 255, .7); }
+.sheet.ng .sheet-body .note { color: var(--orange-deep); }
+.sheet .btn.primary { background: var(--blue); }
+.sheet.ng .btn.primary { background: var(--orange); }
+.score .disc { width: 148px; height: 148px; border-radius: 50%; background: var(--blue-soft); margin: 4px auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score .disc .num { font-size: 52px; color: var(--blue); }
+.score .disc .hint { margin-top: 0; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: rise .22s ease-out; } @keyframes rise { from { transform: translate(-50%, 24px); opacity: 0; } } }

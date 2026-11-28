@@ -190,7 +190,7 @@
     var nPool = pool().length;
     mount([
       h("header", { class: "top" }, [
-        h("div", null, [h("p", { class: "sub", text: greet }), h("h1", { text: "生成AIクイズ" })]),
+        h("div", { class: "brand" }, [svgEl(LOGO_SVG, "logo", "0 0 96 96", "生成AIクイズのロゴ"), h("div", null, [h("p", { class: "sub", text: greet }), h("h1", { text: "生成AIクイズ" })])]),
         h("div", { style: "display:flex;align-items:center;gap:6px" }, [
           h("span", { class: "chip blue", text: "連続 " + streak + "日" }),
           h("a", { class: "icon-btn", href: "#/settings", "aria-label": "設定" }, icon("gear")),
@@ -315,7 +315,8 @@
     viewFeedback(chosenOrig, correct, note);
   }
 
-  var OK_SVG = '<circle cx="12" cy="12" r="10" fill="#2E54D6"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+  var LOGO_SVG = '<rect width="96" height="96" rx="22" fill="#2E54D6"/><g fill="none" stroke="#fff" stroke-width="4"><rect x="18" y="18" width="27" height="27" rx="7"/><rect x="18" y="51" width="27" height="27" rx="7"/><rect x="51" y="51" width="27" height="27" rx="7"/></g><rect x="51" y="18" width="27" height="27" rx="7" fill="#fff"/><path d="M57 32l6 6 10-12" stroke="#2E54D6" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+  var OK_SVG ='<circle cx="12" cy="12" r="10" fill="#2E54D6"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
   var NG_SVG = '<circle cx="12" cy="12" r="10" fill="#C2571A"/><path d="M8 8l8 8M16 8l-8 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>';
 
   function viewFeedback(chosenOrig, correct, note) {
@@ -331,14 +332,16 @@
     if (q.source) expl.push(h("p", { class: "src", text: "出典：" + q.source }));
     mount([
       qHeader(sess), qChips(it),
-      h("div", { class: "verdict " + (correct ? "ok" : "ng"), role: "status" }, [svgEl(correct ? OK_SVG : NG_SVG, "", "0 0 24 24", ""), correct ? "正解" : "不正解"]),
       h("p", { class: "q small", text: q.question }),
       h("div", { class: "choices" }, rows),
-      h("section", { class: "card expl", "aria-label": "解説" }, [h("h2", { text: "解説", style: "margin-bottom:6px" })].concat(expl)),
-      note ? h("div", { class: "note", text: note }) : null,
-      h("div", { class: "footer" }, h("button", { class: "btn primary", type: "button", text: last ? "結果を見る" : "次の問題へ", onclick: function () { if (last) finish(); else { sess.idx++; viewQuestion(); } } })),
+      h("section", { class: "sheet " + (correct ? "ok" : "ng"), "aria-label": "解説" }, [
+        h("div", { class: "verdict " + (correct ? "ok" : "ng"), role: "status" }, [svgEl(correct ? OK_SVG : NG_SVG, "", "0 0 24 24", ""), correct ? "正解" : "不正解"]),
+        h("div", { class: "expl sheet-body" }, expl.concat(note ? [h("div", { class: "note", text: note })] : [])),
+        h("button", { class: "btn primary", type: "button", text: last ? "結果を見る" : "次の問題へ", onclick: function () { if (last) finish(); else { sess.idx++; viewQuestion(); } } }),
+      ]),
     ]);
-    var f = root.querySelector(".footer button"); if (f) f.focus({ preventScroll: true });
+    root.classList.add("has-sheet");
+    var f = root.querySelector(".sheet .btn"); if (f) f.focus({ preventScroll: true });
   }
 
   function interrupt() {
@@ -398,7 +401,7 @@
     var kids = [
       h("header", { class: "top" }, h("h1", { text: "おつかれさまでした" })),
       h("p", { class: "hint", style: "margin-top:-4px", text: rec.total + "問・" + fmtTime(rec.seconds) }),
-      h("section", { class: "card score", "aria-label": "正解数" }, [h("div", { class: "num", html: rec.correct + "<small>/ " + rec.total + "</small>" }), h("div", { class: "hint", text: "正解" })]),
+      h("section", { class: "score", "aria-label": "正解数" }, [h("div", { class: "disc" }, [h("div", { class: "num", html: rec.correct + "<small>/ " + rec.total + "</small>" }), h("div", { class: "hint", text: "正解" })])]),
     ];
     ups.forEach(function (c) {
       kids.push(h("section", { class: "card levelup", role: "status" }, h("div", { class: "row" }, [h("span", { text: "▲" }), short(c) + " が " + lvLabel(snapLevel(prev, c.id)) + " から " + lvLabel(snapLevel(snap, c.id)) + " に上がりました"])));
